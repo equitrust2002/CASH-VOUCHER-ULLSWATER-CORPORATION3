@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ullswater Pro | Enterprise Voucher</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        :root { --primary: #000; --cash: #008f39; --check: #0056b3; --accent: #008f39; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #dfe4ea; margin: 0; padding: 10px; -webkit-print-color-adjust: exact; }
+        
+        .container { 
+            width: 100%; max-width: 210mm; background: #fff; margin: 0 auto; padding: 30px; 
+            box-sizing: border-box; border: 4px solid var(--primary); position: relative; 
+        }
+
+        .header { display: flex; justify-content: space-between; border-bottom: 5px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; }
+        .brand h1 { margin: 0; font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; }
+        .cv-title { font-size: 20px; font-weight: 900; color: var(--accent); margin: 0; text-transform: uppercase; }
+        #vID { font-weight: 900; background: #000; color: #fff; padding: 6px 15px; font-size: 18px; display: inline-block; border-radius: 2px; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
+        @media (min-width: 600px) { .form-grid { grid-template-columns: 1.5fr 1fr; gap: 20px; } }
+
+        .row { border-bottom: 1.5px solid #000; padding: 10px 0; display: flex; flex-direction: column; }
+        .label { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #666; margin-bottom: 4px; }
+        
+        input, textarea { border: none; outline: none; font-size: 16px; width: 100%; background: transparent; text-transform: uppercase; font-weight: 700; color: #000; }
+        
+        /* iPhone Print Mirror - Essential for Safari */
+        .print-mirror { display: none; font-size: 16px; font-weight: 700; text-transform: uppercase; color: #000; white-space: pre-wrap; }
+
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; border: 2.5px solid #000; }
+        th { background: var(--primary); color: #fff; padding: 10px; font-size: 11px; text-align: left; text-transform: uppercase; }
+        td { border: 1.5px solid #000; padding: 12px; vertical-align: top; }
+
+        .amount-section { border: 4px solid var(--accent); margin-top: 15px; }
+        .words-box { padding: 12px; background: #f9f9f9; font-size: 13px; font-weight: 900; text-transform: uppercase; border-bottom: 1px solid #ddd; color: #000; min-height: 1.8em; line-height: 1.4; }
+        .num-box { padding: 15px; background: #fff; font-size: 32px; font-weight: 900; color: var(--accent); text-align: center; }
+
+        .sigs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 50px; }
+        .sig-line { border-top: 2px solid #000; padding-top: 8px; text-align: center; font-size: 10px; font-weight: 900; text-transform: uppercase; }
+        
+        .footer { margin-top: 30px; border-top: 2.5px solid #000; padding-top: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 9px; font-weight: 800; }
+        #qrcode { background: #fff; padding: 5px; border: 1px solid #000; }
+
+        /* Toolbar */
+        .toolbar { position: sticky; top: 0; background: #dfe4ea; padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; z-index: 1000; justify-content: center; border-bottom: 1px solid #bbb; }
+        .btn { padding: 12px 16px; border: none; color: #fff; font-weight: 900; font-size: 10px; cursor: pointer; border-radius: 4px; text-transform: uppercase; }
+        .btn-print { background: var(--accent); border: 1.5px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-util { background: #2d3436; }
+        .btn-reset { background: #d63031; }
+
+        @media print { 
+            .no-print { display: none !important; } 
+            body { background: #fff; padding: 0; }
+            .container { width: 100%; border: 3px solid #000; box-shadow: none; padding: 15px; }
+            input, textarea { display: none !important; } 
+            .print-mirror { display: block !important; } 
+        }
+    </style>
+</head>
+<body>
+
+<nav class="toolbar no-print">
+    <button class="btn btn-print" onclick="smartPrint()">PRINT PDF & NEXT</button>
+    <button class="btn btn-util" onclick="saveCSV()">SAVE CSV</button>
+    <button class="btn btn-util" onclick="saveJSON()">SAVE JSON</button>
+    <button class="btn btn-util" onclick="document.getElementById('bulkInput').click()">BULK LOAD</button>
+    <button class="btn btn-reset" onclick="fullReset()">CLEAR</button>
+    
+    <select id="vMode" onchange="toggleMode()" style="padding:10px; font-weight:900; border:2px solid #000; border-radius:4px;">
+        <option value="CASH">CASH MODE</option>
+        <option value="CHECK">CHECK MODE</option>
+    </select>
+    <input type="file" id="bulkInput" style="display:none" accept=".json" multiple onchange="handleBulk(event)">
+</nav>
+
+<div class="container" id="voucher">
+    <header class="header">
+        <div class="brand">
+            <h1 id="coName" contenteditable="true" onblur="saveCo()">ULLSWATER CORPORATION</h1>
+            <p style="margin:0; font-size:10px; font-weight:800;">FINANCE & OPERATIONS UNIT</p>
+        </div>
+        <div class="cv-meta" style="text-align:right">
+            <p class="cv-title" id="typeTitle">CASH VOUCHER</p>
+            <div id="vID">CV-2026-0001</div>
+        </div>
+    </header>
+
+    <div class="form-grid">
+        <div class="left">
+            <div class="row">
+                <span class="label">Pay To:</span>
+                <input type="text" id="payee" oninput="syncAll()" onblur="syncAll()">
+                <div class="print-mirror" id="m_payee"></div>
+            </div>
+            <div class="row">
+                <span class="label">Particulars:</span>
+                <textarea id="particulars" rows="1" oninput="syncAll()" onblur="syncAll()"></textarea>
+                <div class="print-mirror" id="m_particulars"></div>
+            </div>
+        </div>
+        <div class="right">
+            <div class="row">
+                <span class="label">Date:</span>
+                <input type="date" id="vDate" oninput="syncAll()">
+                <div class="print-mirror" id="m_date"></div>
+            </div>
+            <div class="row">
+                <span class="label" id="refLabel">Ref No:</span>
+                <input type="text" id="ref" oninput="syncAll()">
+                <div class="print-mirror" id="m_ref"></div>
+            </div>
+        </div>
+    </div>
+
+    <table>
+        <thead><tr><th width="70%">Account Category / Description</th><th width="30%">Amount (PHP)</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>
+                    <textarea id="acct" rows="2" oninput="syncAll()"></textarea>
+                    <div class="print-mirror" id="m_acct"></div>
+                </td>
+                <td>
+                    <input type="number" id="amount" step="0.01" inputmode="decimal" style="text-align:right; font-size:22px;" 
+                           oninput="processAmount()" 
+                           onkeyup="processAmount()" 
+                           onblur="processAmount()"
+                           onchange="processAmount()">
+                    <div class="print-mirror" id="m_amount" style="text-align:right; font-size:22px;"></div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="amount-section">
+        <div class="words-box" id="amtWords">ZERO PESOS ONLY</div>
+        <div class="num-box" id="dispAmt">₱ 0.00</div>
+    </div>
+
+    <div class="sigs">
+        <div class="sig-line">Prepared By</div>
+        <div class="sig-line">Approved By</div>
+        <div class="sig-line">Received By</div>
+    </div>
+
+    <div class="footer">
+        <div>ULLSWATER CORPORATION • SECURE ENTERPRISE RECORD • 2026</div>
+        <div id="qrcode"></div>
+    </div>
+</div>
+
+<script>
+    // --- CORE MATH & WORD LOGIC ---
+    function processAmount() {
+        const input = document.getElementById('amount');
+        let val = parseFloat(input.value) || 0;
+        
+        // 1. Update Numeric Display
+        document.getElementById('dispAmt').innerText = "₱ " + val.toLocaleString(undefined, {
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2
+        });
+        
+        // 2. Update Words
+        document.getElementById('amtWords').innerText = convertToWords(val);
+        
+        // 3. Mirror for Print
+        syncAll();
+    }
+
+    function convertToWords(num) {
+        if (num <= 0) return "ZERO PESOS ONLY";
+        const a = ['', 'one ', 'two ', 'three ', 'four ', 'five ', 'six ', 'seven ', 'eight ', 'nine ', 'ten ', 'eleven ', 'twelve ', 'thirteen ', 'fourteen ', 'fifteen ', 'sixteen ', 'seventeen ', 'eighteen ', 'nineteen '];
+        const b = ['', '', 'twenty ', 'thirty ', 'forty ', 'fifty ', 'sixty ', 'seventy ', 'eighty ', 'ninety '];
+        const g = (n) => {
+            let s = '';
+            if (n >= 100) { s += a[Math.floor(n / 100)] + 'hundred '; n %= 100; }
+            if (n >= 20) { s += b[Math.floor(n / 10)] + a[n % 10]; } else { s += a[n]; }
+            return s;
+        };
+        let r = '', w = Math.floor(num), c = Math.round((num - w) * 100);
+        if (w >= 1e6) { r += g(Math.floor(w / 1e6)) + 'million '; w %= 1e6; }
+        if (w >= 1e3) { r += g(Math.floor(w / 1e3)) + 'thousand '; w %= 1e3; }
+        r += g(w);
+        let res = r.trim() + (c > 0 ? " and " + c + "/100" : "");
+        return (res + " pesos only").toUpperCase();
+    }
+
+    // --- IPHONE PRINT ENGINE ---
+    function syncAll() {
+        const fields = ['payee', 'particulars', 'ref', 'acct', 'amount', 'vDate'];
+        fields.forEach(f => {
+            const el = document.getElementById(f);
+            const val = el ? el.value : "";
+            const mirror = document.getElementById('m_' + f.replace('vDate', 'date'));
+            if(mirror) mirror.innerText = val.toUpperCase();
+        });
+        updateQR();
+    }
+
+    function smartPrint() {
+        processAmount(); // Final force update for words
+        syncAll();      // Final force sync for iPhone PDF
+        
+        let seq = parseInt(localStorage.getItem('ull_seq') || 1);
+        localStorage.setItem('ull_seq', seq + 1);
+        
+        window.print();
+        setTimeout(() => { location.reload(); }, 1200);
+    }
+
+    // --- SYSTEM UTILS ---
+    function init() {
+        let n = localStorage.getItem('ull_seq') || 1;
+        document.getElementById('vID').innerText = "CV-2026-" + n.toString().padStart(4, '0');
+        document.getElementById('vDate').valueAsDate = new Date();
+        document.getElementById('coName').innerText = localStorage.getItem('ull_name') || "ULLSWATER CORPORATION";
+        syncAll();
+    }
+
+    function toggleMode() {
+        const m = document.getElementById('vMode').value;
+        document.getElementById('typeTitle').innerText = m + " VOUCHER";
+        document.documentElement.style.setProperty('--accent', m === 'CASH' ? 'var(--cash)' : 'var(--check)');
+        document.getElementById('refLabel').innerText = m === 'CASH' ? 'Ref No:' : 'Check No:';
+    }
+
+    function updateQR() {
+        const id = document.getElementById('vID').innerText;
+        const p = document.getElementById('payee').value;
+        const a = document.getElementById('amount').value;
+        const target = document.getElementById("qrcode");
+        target.innerHTML = "";
+        if(p || a) new QRCode(target, { text: `${id}|${p}|${a}`, width: 75, height: 75 });
+    }
+
+    function saveCo() { localStorage.setItem('ull_name', document.getElementById('coName').innerText); }
+    function fullReset() { if(confirm("Reset sequence and fields?")) { localStorage.clear(); location.reload(); } }
+    
+    function saveJSON() {
+        const d = { id: document.getElementById('vID').innerText, payee: document.getElementById('payee').value, amount: document.getElementById('amount').value };
+        const b = new Blob([JSON.stringify(d, null, 2)], {type:'application/json'});
+        const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`${d.id}.json`; a.click();
+    }
+
+    function saveCSV() {
+        const csv = `ID,PAYEE,AMOUNT\n${document.getElementById('vID').innerText},${document.getElementById('payee').value},${document.getElementById('amount').value}`;
+        const b = new Blob([csv], {type:'text/csv'});
+        const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download="export.csv"; a.click();
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>
